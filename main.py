@@ -18,6 +18,12 @@ class Order(BaseModel):
     
 stock_data = {}
 
+shipping_rates = {
+    "medan": 15000,
+    "jakarta": 25000,
+    "surabaya": 25000,
+}
+
 def main():
     load_dotenv()  # Loads variables from .env into os.environ
     api_key = os.getenv("OPENAI_API_KEY")
@@ -39,7 +45,29 @@ def main():
     stock = {}
     for x in order.order_item:
         stock[(x.product_name, x.color, x.size)] = check_stock(x.product_name.lower(), x.size.lower() if x.size else None, x.color.lower() if x.color else None, x.qty)
-    print(stock)
+    if order.address is None:
+        shipping_display = "Alamat belum dimasukkan"
+    else:
+        rate = calculate_shipping(order.address.lower())
+        if rate == 0:
+            shipping_display = "Lokasi tidak dikenali"
+        else:
+            shipping_display = f"Rp{rate}"
+        
+    print("[Mengekstrak pesanan...]")
+    print("[Mengecek stok...]")
+    print("[menghitung ongkir...]")
+    print("=== Ringkasan pesanan ===")
+    i = 1
+    for x in order.order_item:
+        if(stock[(x.product_name, x.color, x.size)]) : 
+            stok = "Tersedia"
+        else:
+            stok = "Habis"
+        print(f"{i}. {x.product_name} - size {x.size} warna {x.color}, {x.qty}pcs - Stok: {stok}")
+        i+=1
+    print(f"Alamat : {order.address}")
+    print(f"Estimasi ongkir : {shipping_display}")
 
 def load_stock():
     global stock_data
@@ -50,7 +78,6 @@ def load_stock():
                 tuple(key): value
                 for key, value in data
             }
-            print(stock_data)
     except Exception as e:
         print(f"Error fetching data: {e}")
 
@@ -60,6 +87,13 @@ def check_stock(product_name, size, color, qty):
     if available is None:
         return False
     return available >= qty
+
+def calculate_shipping(address):
+    # global shipping_rates
+    for x in shipping_rates:
+        if x in address:
+            return shipping_rates[x]
+    return 0
     
 if __name__ == "__main__":
     main()
