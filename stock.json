@@ -1,5 +1,6 @@
 [
-    [["baju anak", "m", "biru"], 10],
-    [["baju anak", "l", "merah"], 0],
-    [["baju anak", "s", "hijau"], 5]
+    [["baju mickey", null, null], 10],
+    [["piyama donald", "l", "merah"], 0],
+    [["piyama donald", "l", "hijau"], 5],
+    [["piyama donald", "m", "hijau"], 5]
 ]
