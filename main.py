@@ -1,20 +1,8 @@
-from pydantic import BaseModel
-import instructor
 from dotenv import load_dotenv
 import os
 from openai import OpenAI
 import json
-
-class OrderItem(BaseModel):
-    product_name: str
-    color: str | None = None
-    size: str | None = None
-    qty: int
-
-class Order(BaseModel):
-    address: str | None = None
-    note : str | None = None
-    order_item: list[OrderItem]
+import sys
     
 stock_data = {}
 
@@ -94,34 +82,56 @@ def main():
     
         Jangan pernah mengarang informasi stok.
         Sampaikan hasil berdasarkan hasil tool.
+        Hanya jawab pertanyaan seputar produk, stok, pengiriman, dan pesanan toko ini. 
+        Jika di luar topik, tolak dengan sopan.
+        jangan gunakan format markdown seperti tebal atau daftar
         """
     while True:
         user_input = input("Anda : ")
         if(user_input == "exit"):
             break
         input_list.append({"role" : "user", "content" : user_input})
+        print("Bot: ", end="")
+        MAX_TOOL_ROUNDS = 5
+        round_count = 0
         while True:
-            response = client.responses.create(
-                                            model="gpt-6-astra",
+            round_count += 1
+            stream = client.responses.create(
+                                            model="gpt-6-luna",
                                             tools=tools,
                                             instructions=system_prompt,
-                                            input=input_list
+                                            input=input_list,
+                                            stream=True,
                                         )
+            response = None
+            for event in stream:
+                if event.type == "response.output_text.delta":
+                    print(event.delta, end="", flush=True)
+                elif event.type == "response.completed":
+                    response = event.response
+            if response is None:
+                print("\nBot: Maaf, Kak, koneksi terputus. Coba lagi ya.")
+                break
+            print()
+            
             input_list += response.output
             calls = [i for i in response.output if i.type == "function_call"]
             if not calls:
-                print(f"Bot : {response.output_text}")
                 break
             for call in calls:
-                result = run_tool(call.name, json.loads(call.arguments))
+                result = run_tool(call.name, call.arguments)
                 input_list.append({
                     "type": "function_call_output",
                     "call_id": call.call_id,
                     "output": json.dumps(result),
                 })
+            if round_count >= MAX_TOOL_ROUNDS:
+                print("Bot : Maaf, Kak, sistem belum bisa memproses permintaan ini. Coba tulis ulang pesannya ya.")
+                break
 
-def run_tool(name, args):
+def run_tool(name, raw_args):
     try:
+        args = json.loads(raw_args)
         if(name == "check_stock"):
             return check_stock(**args)
         elif(name == "calculate_shipping"):
@@ -146,6 +156,7 @@ def load_stock():
             }
     except Exception as e:
         print(f"Error fetching data: {e}")
+        sys.exit()
 
 def check_stock(product_name, size, color):
     matches = [
