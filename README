@@ -1,0 +1,73 @@
+# AI Order Assistant
+
+Asisten chat untuk toko baju anak online. Asisten menjawab pertanyaan stok dan ongkir kirim, lalu memanggil fungsi Python sungguhan lewat tool calling.
+
+## Fitur
+
+- Chat multi-turn dengan riwayat percakapan
+- Cek stok produk dengan ukuran dan warna opsional
+- Hitung ongkir berdasarkan nama kota
+- Menolak pertanyaan di luar topik toko
+- Respons ditampilkan secara streaming
+
+## Cara kerja
+
+Model memutuskan sendiri kapan memanggil tool. Program menjalankan fungsi Python yang diminta, lalu mengirim hasilnya kembali ke model, sampai model memberi jawaban akhir. Batas jumlah putaran tool dibatasi 5 untuk mencegah loop tanpa henti.
+
+Stok dan ongkir dihitung oleh kode, bukan oleh model. Model tidak diizinkan mengarang stok.
+
+## Instalasi
+
+1. Clone repo ini
+2. Buat dan aktifkan virtual environment
+    python -m venv venv
+    venv\Scripts\Activate.ps1
+3. Install dependency
+    pip install -r requirements.txt
+4. Buat file `.env` di root folder dan isi:
+    OPENAI_API_KEY=sk-xxxxxxxx
+    
+## Menjalankan
+    python main.py
+
+
+Ketik pesan pelanggan, lalu `exit` untuk keluar.
+
+## Contoh
+Anda : piyama donald L hijau
+Bot: Piyama Donald ukuran L warna hijau tersedia. Stoknya 5.
+
+
+## Data stok
+
+Stok disimpan di `stock.json` dengan format:
+
+```json
+[
+    [["baju mickey", null, null], 10],
+    [["piyama donald", "l", "merah"], 0]
+]
+```
+
+Setiap entri berisi `[nama_produk, size, color]` dan jumlah stok. `null` dipakai untuk produk yang tidak punya variasi.
+
+## Keterbatasan
+
+- Nama produk harus persis sesuai daftar di system prompt
+- Harga belum ada di data, jadi total pembayaran belum dihitung
+- Jumlah pesanan tidak dicek ulang ke stok saat konfirmasi
+- Nama model OpenAI diambil dari kode dan perlu disesuaikan dengan akun Anda
+
+## Yang saya pelajari
+
+- Tool calling dengan Responses API dan `function_call_output`
+- Loop tool calling dengan batas putaran
+- Streaming dan penanganan event
+- Desain hasil tool yang memengaruhi kualitas jawaban
+- Batasan topik lewat system prompt, dan kesimpulan bahwa perhitungan harus dilakukan kode
+
+## Teknologi
+
+- Python
+- OpenAI Responses API
+- python-dotenv
